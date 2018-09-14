@@ -3,58 +3,48 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Transactions;
 
 namespace SimpleMigrator
 {
-    public class Migrator
+    class Migrator
     {
-        private readonly string _connectionFromString;
-        private readonly string _connectionToString;
+        private ConnectionHolder _connectionHolder;
 
-        public Migrator(string connectionFrom, string connectionTo)
+        public Migrator(ConnectionHolder connectionHolder)
         {
-            _connectionFromString = connectionFrom;
-            _connectionToString = connectionTo;
+            _connectionHolder = connectionHolder;
         }
 
         public void Copy(string tableName)
         {
-            using (var connectionFrom = new SqlConnection(_connectionFromString))
-            using (var connectionTo = new SqlConnection(_connectionToString))
+            var sourceCommand = new SqlCommand($"select * from [{tableName}]", _connectionHolder.Source);
+            //using (TransactionScope transaction = new TransactionScope())
+            using (SqlDataReader dr = sourceCommand.ExecuteReader())
             {
-                connectionTo.Open();
-                connectionFrom.Open();
-                var sourceCommand = new SqlCommand($"select * from [{tableName}]", connectionFrom);
-                //using (TransactionScope transaction = new TransactionScope())
-                using (SqlDataReader dr = sourceCommand.ExecuteReader())
+                using (var bulkCopy = new SqlBulkCopy(_connectionHolder.Destination.ConnectionString, SqlBulkCopyOptions.KeepIdentity))
                 {
-                    using (var bulkCopy = new SqlBulkCopy(connectionTo.ConnectionString, SqlBulkCopyOptions.KeepIdentity))
-                    {
-                        foreach (string columnName in GetMapping(_connectionFromString, _connectionToString, tableName))
-                            bulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(columnName, columnName));
-                        bulkCopy.DestinationTableName = $"[{tableName}]";
-                        bulkCopy.BatchSize = 1000;
-                        bulkCopy.BulkCopyTimeout = 0;
-                        bulkCopy.WriteToServer(dr);
-                        bulkCopy.Close();
-                    }
-                    //transaction.Complete();
+                    foreach (string columnName in GetMapping(tableName))
+                        bulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(columnName, columnName));
+                    bulkCopy.DestinationTableName = $"[{tableName}]";
+                    bulkCopy.BatchSize = 1000;
+                    bulkCopy.BulkCopyTimeout = 0;
+                    bulkCopy.WriteToServer(dr);
+                    bulkCopy.Close();
                 }
+                //transaction.Complete();
             }
         }
 
-        private IEnumerable<string> GetMapping(string stringSource, string stringTarget, string tableName)
+        private IEnumerable<string> GetMapping(string tableName)
         {
             return Enumerable.Intersect(
-                GetSchema(stringSource, tableName),
-                GetSchema(stringTarget, tableName),
+                GetSchema(_connectionHolder.Source, tableName),
+                GetSchema(_connectionHolder.Destination, tableName),
                 StringComparer.Ordinal); // or StringComparer.OrdinalIgnoreCase
         }
 
-        private IEnumerable<string> GetSchema(string connectionString, string tableName)
+        private IEnumerable<string> GetSchema(SqlConnection connection, string tableName)
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
             using (SqlCommand command = connection.CreateCommand())
             {
                 command.CommandText = "sp_Columns";

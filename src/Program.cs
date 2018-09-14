@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
 
 namespace SimpleMigrator
@@ -11,15 +11,11 @@ namespace SimpleMigrator
         {
             Write("--Start--");
 
-            var migrator = new Migrator(Settings.ConnectionStringFrom, Settings.ConnectionStringTo);
-
-            using (var connectionFrom = new SqlConnection(Settings.ConnectionStringFrom))
-            using (var connectionTo = new SqlConnection(Settings.ConnectionStringTo))
+            using (var connectionHolder = new ConnectionHolder(Settings.ConnectionStringFrom, Settings.ConnectionStringTo))
             {
-                connectionFrom.Open();
-                connectionTo.Open();
-                DataTable sourceTablesDataTable = connectionFrom.GetSchema("Tables", new string[] { null, null, null, "BASE TABLE" });
-                DataTable destinationDataTable = connectionTo.GetSchema("Tables", new string[] { null, null, null, "BASE TABLE" });
+                var migrator = new Migrator(connectionHolder);
+                DataTable sourceTablesDataTable = connectionHolder.Source.GetSchema("Tables", new string[] { null, null, null, "BASE TABLE" });
+                DataTable destinationDataTable = connectionHolder.Destination.GetSchema("Tables", new string[] { null, null, null, "BASE TABLE" });
                 var sourceTables = new List<string>();
                 foreach (DataRow row in sourceTablesDataTable.Rows)
                 {
@@ -42,7 +38,7 @@ namespace SimpleMigrator
 
         public static void Write(string msg)
         {
-            System.Console.WriteLine(msg);
+            Console.WriteLine(msg);
         }
     }
 }
