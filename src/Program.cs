@@ -5,6 +5,18 @@ using System.Linq;
 
 namespace SimpleMigrator
 {
+    class TableDescriptor
+    {
+        public TableDescriptor(string schema, string name)
+        {
+            Schema = schema;
+            Name = name;
+        }
+
+        public string Schema { get; set; }
+        public string Name { get; set; }
+    }
+
     class Program
     {
         static void Main(string[] args)
@@ -16,19 +28,19 @@ namespace SimpleMigrator
                 var migrator = new Migrator(connectionHolder);
                 DataTable sourceTablesDataTable = connectionHolder.Source.GetSchema("Tables", new string[] { null, null, null, "BASE TABLE" });
                 DataTable destinationDataTable = connectionHolder.Destination.GetSchema("Tables", new string[] { null, null, null, "BASE TABLE" });
-                var sourceTables = new List<string>();
+                var sourceTables = new List<TableDescriptor>();
                 foreach (DataRow row in sourceTablesDataTable.Rows)
                 {
-                    string tablename = (string)row[2];
-                    sourceTables.Add(tablename);
+                    sourceTables.Add(new TableDescriptor((string)row[1], (string)row[2]));
                 }
                 foreach (DataRow row in destinationDataTable.Rows)
                 {
+                    string schema = (string)row[1];
                     string tableName = (string)row[2];
-                    if (sourceTables.Any(x => x == tableName))
+                    if (sourceTables.Any(x => x.Name == tableName && x.Schema == schema))
                     {
                         Write(tableName);
-                        migrator.Copy(tableName);
+                        migrator.Copy(schema, tableName);
                     }
                 }
             }

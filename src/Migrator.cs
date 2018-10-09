@@ -15,9 +15,9 @@ namespace SimpleMigrator
             _connectionHolder = connectionHolder;
         }
 
-        public void Copy(string tableName)
+        public void Copy(string schema, string tableName)
         {
-            var sourceCommand = new SqlCommand($"select * from [{tableName}]", _connectionHolder.Source);
+            var sourceCommand = new SqlCommand($"select * from [{schema}].[{tableName}]", _connectionHolder.Source);
             //using (TransactionScope transaction = new TransactionScope())
             using (SqlDataReader dr = sourceCommand.ExecuteReader())
             {
@@ -25,7 +25,7 @@ namespace SimpleMigrator
                 {
                     foreach (string columnName in GetMapping(tableName))
                         bulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(columnName, columnName));
-                    bulkCopy.DestinationTableName = $"[{tableName}]";
+                    bulkCopy.DestinationTableName = $"[{schema}].[{tableName}]";
                     bulkCopy.BatchSize = 1000;
                     bulkCopy.BulkCopyTimeout = 0;
                     bulkCopy.WriteToServer(dr);
@@ -52,7 +52,6 @@ namespace SimpleMigrator
 
                 command.Parameters.Add("@table_name", SqlDbType.NVarChar, 384).Value = tableName;
 
-                connection.Open();
                 using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
