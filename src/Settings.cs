@@ -17,5 +17,13 @@
                 return System.Configuration.ConfigurationManager.ConnectionStrings["Destination"].ConnectionString;
             }
         }
+
+        public static int BatchSize
+        {
+            get
+            {
+                return int.Parse(System.Configuration.ConfigurationManager.AppSettings["BatchSize"]);
+            }
+        }
     }
 }

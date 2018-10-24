@@ -37,11 +37,8 @@ namespace SimpleMigrator
                 {
                     string schema = (string)row[1];
                     string tableName = (string)row[2];
-                    if (sourceTables.Any(x => x.Name == tableName && x.Schema == schema))
-                    {
-                        Write(tableName);
+                    if (sourceTables.Any(td => td.Name == tableName && td.Schema == schema))
                         migrator.Copy(schema, tableName);
-                    }
                 }
             }
 

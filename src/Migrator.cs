@@ -17,22 +17,46 @@ namespace SimpleMigrator
 
         public void Copy(string schema, string tableName)
         {
+            Console.WriteLine($"Migrating [{schema}].[{tableName}]...");
+
+            int tableRowTotal = 
+                (int)
+                new SqlCommand($"select count(*) from [{schema}].[{tableName}]", _connectionHolder.Source)
+                    .ExecuteScalar();
+
             var sourceCommand = new SqlCommand($"select * from [{schema}].[{tableName}]", _connectionHolder.Source);
+
             //using (TransactionScope transaction = new TransactionScope())
             using (SqlDataReader dr = sourceCommand.ExecuteReader())
             {
                 using (var bulkCopy = new SqlBulkCopy(_connectionHolder.Destination.ConnectionString, SqlBulkCopyOptions.KeepIdentity))
                 {
+                    bulkCopy.DestinationTableName = $"[{schema}].[{tableName}]";
+                    bulkCopy.BulkCopyTimeout = 0;
+                    bulkCopy.BatchSize = Settings.BatchSize;
+                    bulkCopy.NotifyAfter = Settings.BatchSize;
+                    bulkCopy.SqlRowsCopied += (s, e) => WriteProgress(e.RowsCopied, tableRowTotal);
                     foreach (string columnName in GetMapping(tableName))
                         bulkCopy.ColumnMappings.Add(new SqlBulkCopyColumnMapping(columnName, columnName));
-                    bulkCopy.DestinationTableName = $"[{schema}].[{tableName}]";
-                    bulkCopy.BatchSize = 1000;
-                    bulkCopy.BulkCopyTimeout = 0;
+
                     bulkCopy.WriteToServer(dr);
                     bulkCopy.Close();
+
+                    WriteProgress(tableRowTotal, tableRowTotal);
+                    Console.WriteLine("");
+                    Console.WriteLine($"Finished [{schema}].[{tableName}].");
+                    Console.WriteLine("");
                 }
                 //transaction.Complete();
             }
+        }
+
+        private void WriteProgress(long rowsCopied, int rowTotal)
+        {
+            Console.CursorLeft = 0;
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write($"Copied {rowsCopied}/{rowTotal} records...                     ");
+            Console.ResetColor();
         }
 
         private IEnumerable<string> GetMapping(string tableName)
