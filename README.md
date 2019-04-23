@@ -1,6 +1,9 @@
 # SimpleMigrator
 A simple MSSQL migrator console app written in C#.
- 
+
+# Status
+__Complete.__
+
 # What it does
 Simple Migrator uses MSSQL Server's SQL Bulk Copy to quickly migrate data between databases. Simple Migrator will automatically determine which tables and columns exist in both databases, and migrate only those. SimpleMigrator will display its progress as it migrates rows.
 
