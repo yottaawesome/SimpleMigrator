@@ -1,4 +1,4 @@
-# SimpleMigrator
+# MSSQL Migrator
 A simple MSSQL migrator console app written in C#.
 
 # Status
