@@ -1,6 +1,6 @@
 # MSSQL Migrator
 
-A simple MSSQL-to-MSSQL migrator console app written in C# for .NET Framework. It uses MSSQL Server's SQL Bulk Copy to quickly migrate data between MSSQL databases. MSSQL Migrator will automatically determine which tables and columns exist in both databases, and migrate only those. MSSQL Migrator will display its progress as it migrates rows.
+A simple MSSQL-to-MSSQL migrator console app written in C# for .NET Framework. It uses MSSQL Server's SQL Bulk Copy to quickly migrate data between MSSQL databases. MSSQL Migrator will automatically determine which tables and columns exist in both databases (based on name matching), and migrate only those. MSSQL Migrator will display its progress as it migrates rows.
 
 ## Status
 
